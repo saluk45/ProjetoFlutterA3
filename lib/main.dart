@@ -17,7 +17,7 @@ class MyApp extends StatelessWidget {
         title: 'Namer App',
         theme: ThemeData(
           useMaterial3: true,
-          colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepOrange),
+          colorScheme: ColorScheme.fromSeed(seedColor: Colors.blueAccent),
         ),
         home: MyHomePage(),
       ),
@@ -27,36 +27,139 @@ class MyApp extends StatelessWidget {
 
 class MyAppState extends ChangeNotifier {
   var current = WordPair.random();
+
   void getNext(){
     current = WordPair.random();
     notifyListeners();
   }
+  var favorites = <WordPair>[];
+
+  void Favoritar(){
+
+    if (favorites.contains(current)){
+      //estou desfavoritando a palavra
+      favorites.remove(current);
+    }else {
+      favorites.add(current);
+    }
+    notifyListeners();
+  }
 }
 
-class MyHomePage extends StatelessWidget {
+
+
+
+class MyHomePage extends StatefulWidget {
+  @override
+  State<MyHomePage> createState() => _MyHomePageState();
+}
+
+class _MyHomePageState extends State<MyHomePage>{
+
+var selectedIndex  = 0;
+
   @override
   Widget build(BuildContext context) {
-    var appState = context.watch<MyAppState>();
-    var pair = appState.current;
+    // TODO: implement build
+    Widget page;
+    switch (selectedIndex){
+      case 0:
+        page = GeneratorPage();
+        break;
+
+      case 1:
+        page = FavoritePage();
+        break;
+      default:
+        throw UnimplementedError("nenhuma pagina seleionada para $selectedIndex");
+    }
 
     return Scaffold(
-      body: Column(
-        mainAxisAlignment: MainAxisAlignment.center, // alinha ao centro
+      body: Row(
         children: [
-          Text('Meu primeiro App Flutter:'),
-          BigCard(pair: pair),
-          ElevatedButton(
-            onPressed: (){
-              appState.getNext();
-              print("Botão foi pressionado");
-            },
-            child:Text("proxima")
-          )
+          SafeArea(
+            child: NavigationRail(
+              extended: false,
+              destinations: [
+                NavigationRailDestination(
+                    icon: Icon(Icons.home),
+                    label: Text("principal")),
+                NavigationRailDestination(
+                    icon: Icon(Icons.favorite),
+                    label: Text("Favoritos"))
+              ],
+              selectedIndex: selectedIndex,
+              onDestinationSelected: (value) {
+                setState(() {
+                  selectedIndex = value;
+                });
+              },
+            ),
+          ),
+          Expanded(
+            child: Container(
+              color: Theme.of(context).colorScheme.primaryContainer,
+              child: page,
+            ),
+          ),
+
         ],
       ),
     );
   }
 }
+
+class GeneratorPage extends StatelessWidget{
+  @override
+  Widget build(BuildContext context) {
+  var appState = context.watch<MyAppState>();
+  var pair = appState.current;
+
+  IconData icon;
+
+  if (appState.favorites.contains(pair)){
+  icon = Icons.favorite;
+  } else {
+  icon= Icons.favorite_border;
+  }
+
+  return Scaffold(
+  body: Center(
+  child: Column(
+  mainAxisAlignment: MainAxisAlignment.center, // alinha ao centro
+  children: [
+  Text('Meu primeiro App Flutter:'),
+  BigCard(pair: pair),
+  Row(
+  mainAxisSize: MainAxisSize.min,
+  children: [
+  ElevatedButton(
+  onPressed: (){
+  appState.getNext();
+  /*print("Botão foi pressionado");*/
+  },
+  child:Text("proxima")
+  ),
+
+  SizedBox(width: 10),
+
+  ElevatedButton.icon(
+  onPressed: () {
+  appState.Favoritar();
+  },
+  label: Text("favoritar"),
+  icon: Icon(icon),
+  ),
+  ],
+  ),
+  ],
+  ),
+  )
+  );
+  }
+  }
+
+
 
 class BigCard extends StatelessWidget {
   const BigCard({
@@ -84,5 +187,33 @@ class BigCard extends StatelessWidget {
       )
     );
     return Text(pair.asLowerCase);
+  }
+}
+
+class FavoritePage extends StatelessWidget {
+
+  @override
+  Widget build(BuildContext context){
+    var appState = context.watch<MyAppState>();
+
+    if (appState.favorites.isEmpty){
+      return Center(
+        child: Text("nenhuma dupla de palavras foi favoritada"),
+      );
+    }
+
+    return ListView(
+        children: [
+          Padding(
+              padding: const EdgeInsets.all(20),
+          child: Text("voe possui ${appState.favorites.length} favoritos"),
+    ),
+    for (var wordpair in appState.favorites)
+      ListTile(
+    leading: Icon(Icons.favorite),
+    title: Text(wordpair.asLowerCase),
+    ),
+    ],
+    );
   }
 }
